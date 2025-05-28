@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <title>垃圾分類儀表板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      canvas {
+        max-width: 600px;
+        max-height: 300px;
+        margin-bottom: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>垃圾分類即時監控</h1>
+
+    <h2>各類垃圾累積數量（直方圖）</h2>
+    <canvas id="barChart"></canvas>
+
+    <h2>垃圾類型比例（圓餅圖）</h2>
+    <canvas id="pieChart"></canvas>
+
+    <h3 id="alert" style="color: red"></h3>
+
+    <script>
+      let pieChart = null;
+      let barChart = null;
+
+      const classNames = ["鐵鋁罐", "紙箱", "紙杯", "寶特瓶"];
+      const thresholds = [10, 10, 10, 10]; // 每類垃圾的提醒門檻
+
+      async function fetchStatus() {
+        const res = await fetch("/status");
+        const data = await res.json();
+        const counts = data.counts;
+        const history = data.history;
+
+        // Pie 圓餅圖更新
+        pieChart.data.datasets[0].data = [
+          counts[0],
+          counts[1],
+          counts[2],
+          counts[3],
+        ];
+        pieChart.update();
+
+        // Bar 直方圖更新
+        barChart.data.datasets[0].data = [
+          counts[0],
+          counts[1],
+          counts[2],
+          counts[3],
+        ];
+        barChart.update();
+
+        // 提醒訊息
+        for (let i = 0; i < 4; i++) {
+          if (counts[i] >= thresholds[i]) {
+            document.getElementById(
+              "alert"
+            ).innerText = `⚠ 類別「${classNames[i]}」已累積 ${counts[i]} 件，請記得清理！`;
+            return;
+          }
+        }
+        document.getElementById("alert").innerText = "";
+      }
+
+      function initCharts() {
+        const pieCtx = document.getElementById("pieChart");
+        pieChart = new Chart(pieCtx, {
+          type: "pie",
+          data: {
+            labels: classNames,
+            datasets: [
+              {
+                label: "分類比例",
+                data: [0, 0, 0, 0],
+                backgroundColor: [
+                  "rgba(255, 99, 132, 0.6)",
+                  "rgba(54, 162, 235, 0.6)",
+                  "rgba(255, 206, 86, 0.6)",
+                  "rgba(75, 192, 192, 0.6)",
+                ],
+              },
+            ],
+          },
+        });
+
+        const barCtx = document.getElementById("barChart");
+        barChart = new Chart(barCtx, {
+          type: "bar",
+          data: {
+            labels: classNames,
+            datasets: [
+              {
+                label: "目前累積數量",
+                data: [0, 0, 0, 0],
+                backgroundColor: [
+                  "rgba(255, 99, 132, 0.6)",
+                  "rgba(54, 162, 235, 0.6)",
+                  "rgba(255, 206, 86, 0.6)",
+                  "rgba(75, 192, 192, 0.6)",
+                ],
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              title: {
+                display: true,
+                text: "目前各類別數量",
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 },
+              },
+            },
+          },
+        });
+      }
+
+      initCharts();
+      setInterval(fetchStatus, 5000); // 每 5 秒更新一次
+    </script>
+  </body>
+</html>

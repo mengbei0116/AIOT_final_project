@@ -1,3 +1,5 @@
 /images
 /output_images
 /dataset
+/copy*
+/*images

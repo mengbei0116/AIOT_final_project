@@ -9,54 +9,107 @@
         font-family: Arial, sans-serif;
         text-align: center;
         margin: 20px;
+        background-color: #f4f6f8;
       }
 
-      #threshold-controls {
+      h1 {
         margin-bottom: 30px;
+        font-size: 32px;
+        color: #2c3e50;
       }
 
-      input[type="number"] {
-        width: 60px;
+      .card {
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        padding: 30px 40px;
+        max-width: 600px;
+        margin: 0 auto 40px auto;
+        text-align: left;
       }
-      
+
+      .card h2 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 20px;
+      }
+
+      .threshold-group {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 12px 0;
+      }
+
+      .threshold-group label {
+        flex: 1;
+        font-weight: bold;
+        font-size: 16px;
+      }
+
+      .threshold-group input {
+        flex: 0 0 80px;
+        padding: 5px;
+        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+      }
+
       .chart-row {
         display: flex;
-        justify-content: center; /* 水平置中 */
-        align-items: center; /* 垂直置中 */
-        gap: 40px; /* 圖表之間的間距 */
-        flex-wrap: wrap; /* 當空間不足時換行 */
-        margin: 0 auto; /* 讓容器本身置中 */
-        width: 100%; /* 確保容器寬度 */
-        max-width: 800px; /* 限制容器最大寬度 */
+        justify-content: center;
+        align-items: center;
+        gap: 40px;
+        flex-wrap: nowrap;
+        margin: 0 auto;
+        width: 100%;
+        max-width: 900px;
       }
-    
-      h1,
+
+      canvas#lineChart {
+        flex: 1 1 55%;
+        max-width: 70%;
+        height: auto;
+      }
+
+      canvas#pieChart {
+        flex: 1 1 35%;
+        max-width: 35%;
+        height: auto;
+      }
+
       h2 {
-        margin: 20px 0 10px;
+        margin: 30px 0 10px;
+        font-size: 24px;
+      }
+
+      h3#alert {
+        color: red;
+        margin-top: 20px;
       }
     </style>
   </head>
   <body>
     <h1>垃圾分類即時監控</h1>
 
-    <h2>分類門檻設定</h2>
-    <div id="threshold-controls">
-      <label
-        >鐵鋁罐：<input type="number" id="threshold-0" value="10" min="0" />
-        件</label
-      ><br />
-      <label
-        >紙餐盒：<input type="number" id="threshold-1" value="10" min="0" />
-        件</label
-      ><br />
-      <label
-        >寶特瓶：<input type="number" id="threshold-2" value="10" min="0" />
-        件</label
-      ><br />
-      <label
-        >紙杯：<input type="number" id="threshold-3" value="10" min="0" />
-        件</label
-      ><br />
+    <div class="card">
+      <h2>分類門檻設定</h2>
+      <div class="threshold-group">
+        <label for="threshold-0">鐵鋁罐：</label>
+        <input type="number" id="threshold-0" value="10" min="0" /> 件
+      </div>
+      <div class="threshold-group">
+        <label for="threshold-1">紙餐盒：</label>
+        <input type="number" id="threshold-1" value="10" min="0" /> 件
+      </div>
+      <div class="threshold-group">
+        <label for="threshold-2">寶特瓶：</label>
+        <input type="number" id="threshold-2" value="10" min="0" /> 件
+      </div>
+      <div class="threshold-group">
+        <label for="threshold-3">紙杯：</label>
+        <input type="number" id="threshold-3" value="10" min="0" /> 件
+      </div>
     </div>
 
     <h2>各類垃圾變化趨勢（折線圖）與類型比例（圓餅圖）</h2>
@@ -65,7 +118,7 @@
       <canvas id="pieChart" width="400" height="300"></canvas>
     </div>
 
-    <h3 id="alert" style="color: red"></h3>
+    <h3 id="alert"></h3>
 
     <script>
       const classNames = ["鐵鋁罐", "紙餐盒", "寶特瓶", "紙杯"];
@@ -127,21 +180,23 @@
           lastCounts = [...counts];
         }
 
+        let alertMessages = [];
+
         for (let i = 0; i < 4; i++) {
           if (counts[i] >= thresholds[i]) {
-            document.getElementById(
-              "alert"
-            ).innerText = `⚠ 類別「${classNames[i]}」已累積 ${counts[i]} 件（門檻：${thresholds[i]}），請記得清理！`;
-            return;
+            alertMessages.push(
+              `⚠ 類別「${classNames[i]}」已累積 ${counts[i]} 件（門檻：${thresholds[i]}）`
+            );
           }
         }
-        document.getElementById("alert").innerText = "";
+
+        document.getElementById("alert").innerText =
+          alertMessages.length > 0 ? alertMessages.join("\n") : "";
       }
 
       function initCharts() {
         const pieCtx = document.getElementById("pieChart");
         pieChart = new Chart(pieCtx, {
-          
           type: "pie",
           data: {
             labels: classNames,
@@ -163,10 +218,7 @@
             plugins: {
               legend: {
                 position: "top",
-                labels: {
-                  boxWidth: 50,
-                  padding: 15,
-                },
+                labels: { boxWidth: 50, padding: 15 },
               },
               title: {
                 display: true,

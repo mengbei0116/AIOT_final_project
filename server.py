@@ -51,24 +51,26 @@ def rotate_and_pad_dynamic(image, angle, background_color=(0, 0, 0), min_size=40
 app = Flask(__name__)
 
 # 初始化相機
-cap = cv2.VideoCapture(0)  # 0 是預設相機
+ # 0 是預設相機
 os.makedirs('captured_images', exist_ok=True)
 dir_name = os.path.join(os.getcwd(), 'captured_images')
 
 @app.route('/capture', methods=['GET'])
 def capture_image():
+    cap = cv2.VideoCapture(0) 
     ret, frame = cap.read()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if ret:
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f'photo_{timestamp}.jpg'
         cv2.imwrite(os.path.join(dir_name, filename), frame)
 
         # 設定測試圖片資料夾
-        test_image_dir = 'custom_test/'
+        test_image_dir = 'captured_images/'
 
         # 模型輸入所需的轉換（依照你訓練時使用的 transform）
         transform = transforms.Compose([
-            transforms.Lambda(lambda img: rotate_and_pad_dynamic(img, angle=random.randint(-180, 180))),
+            #transforms.Lambda(lambda img: rotate_and_pad_dynamic(img, angle=random.randint(-180, 180))),
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -77,7 +79,7 @@ def capture_image():
         # 載入你訓練好的模型
         testmodel = torch.load('waste_classification_model_resnet.pth')
         testmodel.eval()
-        testmodel.to('cuda')
+        testmodel.to(device)
         # 類別標籤（順序需與訓練時相符）
         class_names = ['aluminum_soda_cans', 'cardboard_boxes', 'paper_cups', 'plastic_water_bottles']
 
@@ -86,10 +88,10 @@ def capture_image():
             if filename.lower().endswith(('.jpg', '.png', '.jpeg')):
                 image_path = os.path.join(test_image_dir, filename)
                 image = Image.open(image_path).convert('RGB')
-                image = remove(image)
+                #image = remove(image)
                 
                 input_tensor = transform(image).unsqueeze(0)  # 增加 batch dimension
-                input_tensor = input_tensor.to('cuda')
+                input_tensor = input_tensor.to(device)
                 save_tensor_as_image(input_tensor, filename)  # 儲存處理過的圖片
                 
                 with torch.no_grad():
@@ -100,17 +102,17 @@ def capture_image():
                 class_num = 0
                 if predicted_class.startswith('aluminum_') or predicted_class.startswith('steel'):
                     print(f"{filename} → 預測為: 鐵鋁罐")
+                    class_num = 0
+                elif predicted_class.startswith('paper_meal'):
+                    print(f"{filename} → 預測為: 紙餐盒")
                     class_num = 1
-                elif predicted_class.startswith('cardboard_'):
-                    print(f"{filename} → 預測為: 紙箱/紙板")
-                    class_num = 2
                 elif predicted_class.startswith('plastic'):
                     print(f"{filename} → 預測為: 寶特瓶")
-                    class_num = 3
-                elif predicted_class.startswith('paper_'):
+                    class_num = 2
+                elif predicted_class.startswith('paper_c'):
                     print(f"{filename} → 預測為: 紙杯")
-                    class_num = 4
-                # os.remove(image_path)
+                    class_num = 3
+                os.remove(image_path)
         # 在預測完成後
         category_counts[class_num] += 1
         history_log[class_num].append(category_counts[class_num])
@@ -131,4 +133,4 @@ def dashboard():
     return render_template("web.html")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)

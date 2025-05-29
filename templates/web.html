@@ -5,61 +5,133 @@
     <title>垃圾分類儀表板</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-      canvas {
-        max-width: 600px;
-        max-height: 300px;
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 20px;
+      }
+
+      #threshold-controls {
         margin-bottom: 30px;
+      }
+
+      input[type="number"] {
+        width: 60px;
+      }
+      
+      .chart-row {
+        display: flex;
+        justify-content: center; /* 水平置中 */
+        align-items: center; /* 垂直置中 */
+        gap: 40px; /* 圖表之間的間距 */
+        flex-wrap: wrap; /* 當空間不足時換行 */
+        margin: 0 auto; /* 讓容器本身置中 */
+        width: 100%; /* 確保容器寬度 */
+        max-width: 800px; /* 限制容器最大寬度 */
+      }
+    
+      h1,
+      h2 {
+        margin: 20px 0 10px;
       }
     </style>
   </head>
   <body>
     <h1>垃圾分類即時監控</h1>
 
-    <h2>各類垃圾累積數量（直方圖）</h2>
-    <canvas id="barChart"></canvas>
+    <h2>分類門檻設定</h2>
+    <div id="threshold-controls">
+      <label
+        >鐵鋁罐：<input type="number" id="threshold-0" value="10" min="0" />
+        件</label
+      ><br />
+      <label
+        >紙餐盒：<input type="number" id="threshold-1" value="10" min="0" />
+        件</label
+      ><br />
+      <label
+        >寶特瓶：<input type="number" id="threshold-2" value="10" min="0" />
+        件</label
+      ><br />
+      <label
+        >紙杯：<input type="number" id="threshold-3" value="10" min="0" />
+        件</label
+      ><br />
+    </div>
 
-    <h2>垃圾類型比例（圓餅圖）</h2>
-    <canvas id="pieChart"></canvas>
+    <h2>各類垃圾變化趨勢（折線圖）與類型比例（圓餅圖）</h2>
+    <div class="chart-row">
+      <canvas id="lineChart"></canvas>
+      <canvas id="pieChart" width="400" height="300"></canvas>
+    </div>
 
     <h3 id="alert" style="color: red"></h3>
 
     <script>
+      const classNames = ["鐵鋁罐", "紙餐盒", "寶特瓶", "紙杯"];
       let pieChart = null;
-      let barChart = null;
+      let lineChart = null;
 
-      const classNames = ["鐵鋁罐", "紙箱", "紙杯", "寶特瓶"];
-      const thresholds = [10, 10, 10, 10]; // 每類垃圾的提醒門檻
+      let historyLog = [[], [], [], []];
+      let timeLabels = [];
+      let lastCounts = [0, 0, 0, 0];
+
+      function getThresholds() {
+        return [
+          parseInt(document.getElementById("threshold-0").value),
+          parseInt(document.getElementById("threshold-1").value),
+          parseInt(document.getElementById("threshold-2").value),
+          parseInt(document.getElementById("threshold-3").value),
+        ];
+      }
+
+      function isCountsChanged(current, last) {
+        return current.some((val, idx) => val !== last[idx]);
+      }
+
+      function addDataPoint(counts) {
+        const now = new Date().toLocaleTimeString();
+        timeLabels.push(now);
+        if (timeLabels.length > 10) timeLabels.shift();
+
+        for (let i = 0; i < 4; i++) {
+          historyLog[i].push(counts[i]);
+          if (historyLog[i].length > 10) historyLog[i].shift();
+        }
+      }
+
+      function updateLineChart() {
+        lineChart.data.labels = timeLabels;
+        for (let i = 0; i < 4; i++) {
+          lineChart.data.datasets[i].data = historyLog[i];
+        }
+        lineChart.update();
+      }
 
       async function fetchStatus() {
         const res = await fetch("/status");
         const data = await res.json();
-        const counts = data.counts;
-        const history = data.history;
-
-        // Pie 圓餅圖更新
-        pieChart.data.datasets[0].data = [
-          counts[0],
-          counts[1],
-          counts[2],
-          counts[3],
+        const counts = [
+          data.counts[0] || 0,
+          data.counts[1] || 0,
+          data.counts[2] || 0,
+          data.counts[3] || 0,
         ];
-        pieChart.update();
+        const thresholds = getThresholds();
 
-        // Bar 直方圖更新
-        barChart.data.datasets[0].data = [
-          counts[0],
-          counts[1],
-          counts[2],
-          counts[3],
-        ];
-        barChart.update();
+        if (isCountsChanged(counts, lastCounts)) {
+          addDataPoint(counts);
+          updateLineChart();
+          pieChart.data.datasets[0].data = counts;
+          pieChart.update();
+          lastCounts = [...counts];
+        }
 
-        // 提醒訊息
         for (let i = 0; i < 4; i++) {
           if (counts[i] >= thresholds[i]) {
             document.getElementById(
               "alert"
-            ).innerText = `⚠ 類別「${classNames[i]}」已累積 ${counts[i]} 件，請記得清理！`;
+            ).innerText = `⚠ 類別「${classNames[i]}」已累積 ${counts[i]} 件（門檻：${thresholds[i]}），請記得清理！`;
             return;
           }
         }
@@ -69,6 +141,7 @@
       function initCharts() {
         const pieCtx = document.getElementById("pieChart");
         pieChart = new Chart(pieCtx, {
+          
           type: "pie",
           data: {
             labels: classNames,
@@ -85,32 +158,44 @@
               },
             ],
           },
+          options: {
+            responsive: false,
+            plugins: {
+              legend: {
+                position: "top",
+                labels: {
+                  boxWidth: 50,
+                  padding: 15,
+                },
+              },
+              title: {
+                display: true,
+                text: "垃圾分類比例",
+              },
+            },
+          },
         });
 
-        const barCtx = document.getElementById("barChart");
-        barChart = new Chart(barCtx, {
-          type: "bar",
+        const lineCtx = document.getElementById("lineChart");
+        lineChart = new Chart(lineCtx, {
+          type: "line",
           data: {
-            labels: classNames,
-            datasets: [
-              {
-                label: "目前累積數量",
-                data: [0, 0, 0, 0],
-                backgroundColor: [
-                  "rgba(255, 99, 132, 0.6)",
-                  "rgba(54, 162, 235, 0.6)",
-                  "rgba(255, 206, 86, 0.6)",
-                  "rgba(75, 192, 192, 0.6)",
-                ],
-              },
-            ],
+            labels: [],
+            datasets: classNames.map((name, i) => ({
+              label: name,
+              data: [],
+              borderWidth: 2,
+              tension: 0.3,
+            })),
           },
           options: {
             responsive: true,
+            animation: false,
             plugins: {
+              legend: { position: "top" },
               title: {
                 display: true,
-                text: "目前各類別數量",
+                text: "各類垃圾變化趨勢（最近 10 筆）",
               },
             },
             scales: {
@@ -124,7 +209,7 @@
       }
 
       initCharts();
-      setInterval(fetchStatus, 5000); // 每 5 秒更新一次
+      setInterval(fetchStatus, 5000);
     </script>
   </body>
 </html>

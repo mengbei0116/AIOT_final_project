@@ -87,6 +87,24 @@
         color: red;
         margin-top: 20px;
       }
+
+      /* 新增的清空按鈕樣式 */
+      #resetButton {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #e74c3c;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 20px;
+        display: block;
+        width: 100%;
+      }
+
+      #resetButton:hover {
+        background-color: #c0392b;
+      }
     </style>
   </head>
   <body>
@@ -110,6 +128,9 @@
         <label for="threshold-3">紙杯：</label>
         <input type="number" id="threshold-3" value="10" min="0" /> 件
       </div>
+
+      <!-- 清空垃圾桶按鈕 -->
+      <button id="resetButton">清空垃圾桶</button>
     </div>
 
     <h2>各類垃圾變化趨勢（折線圖）與類型比例（圓餅圖）</h2>
@@ -259,6 +280,25 @@
           },
         });
       }
+
+      document.getElementById("resetButton").addEventListener("click", async () => {
+        if (confirm("確定要清空垃圾桶的累積數量嗎？")) {
+          const res = await fetch("/reset", { method: "POST" });
+          if (res.ok) {
+            alert("垃圾桶已清空！");
+            // 重置前端資料
+            lastCounts = [0, 0, 0, 0];
+            historyLog = [[], [], [], []];
+            timeLabels = [];
+            updateLineChart();
+            pieChart.data.datasets[0].data = [0, 0, 0, 0];
+            pieChart.update();
+            document.getElementById("alert").innerText = "";
+          } else {
+            alert("清空失敗！");
+          }
+        }
+      });
 
       initCharts();
       setInterval(fetchStatus, 5000);

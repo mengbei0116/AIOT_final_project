@@ -25,13 +25,14 @@
         padding: 30px 40px;
         max-width: 600px;
         margin: 0 auto 40px auto;
-        text-align: left;
+        text-align: center;
       }
 
       .card h2 {
-        text-align: center;
         color: #333;
         margin-bottom: 20px;
+        font-size: 28px;
+        font-weight: bold;
       }
 
       .threshold-group {
@@ -39,20 +40,51 @@
         justify-content: space-between;
         align-items: center;
         margin: 12px 0;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #eee;
+        gap: 10px;
+      }
+
+      .threshold-group:last-child {
+        border-bottom: none;
       }
 
       .threshold-group label {
         flex: 1;
         font-weight: bold;
         font-size: 16px;
+        text-align: right;
       }
 
       .threshold-group input {
         flex: 0 0 80px;
-        padding: 5px;
+        text-align: center;
+        padding: 5px 10px;
         font-size: 14px;
         border: 1px solid #ccc;
         border-radius: 6px;
+        outline: none;
+      }
+
+      .threshold-group span {
+        margin-left: 4px;
+        margin-right: 4px;
+        font-size: 14px;
+      }
+
+      .resetButton {
+        padding: 6px 12px;
+        font-size: 14px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      .resetButton:hover {
+        background-color: #2980b9;
       }
 
       .chart-row {
@@ -87,24 +119,6 @@
         color: red;
         margin-top: 20px;
       }
-
-      /* 新增的清空按鈕樣式 */
-      #resetButton {
-        padding: 10px 20px;
-        font-size: 16px;
-        background-color: #e74c3c;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        margin-top: 20px;
-        display: block;
-        width: 100%;
-      }
-
-      #resetButton:hover {
-        background-color: #c0392b;
-      }
     </style>
   </head>
   <body>
@@ -114,23 +128,28 @@
       <h2>分類門檻設定</h2>
       <div class="threshold-group">
         <label for="threshold-0">鐵鋁罐：</label>
-        <input type="number" id="threshold-0" value="10" min="0" /> 件
+        <input type="number" id="threshold-0" value="10" min="0" />
+        <span>件</span>
+        <button class="resetButton" data-class="0">清空</button>
       </div>
       <div class="threshold-group">
         <label for="threshold-1">紙餐盒：</label>
-        <input type="number" id="threshold-1" value="10" min="0" /> 件
+        <input type="number" id="threshold-1" value="10" min="0" />
+        <span>件</span>
+        <button class="resetButton" data-class="1">清空</button>
       </div>
       <div class="threshold-group">
         <label for="threshold-2">寶特瓶：</label>
-        <input type="number" id="threshold-2" value="10" min="0" /> 件
+        <input type="number" id="threshold-2" value="10" min="0" />
+        <span>件</span>
+        <button class="resetButton" data-class="2">清空</button>
       </div>
       <div class="threshold-group">
         <label for="threshold-3">紙杯：</label>
-        <input type="number" id="threshold-3" value="10" min="0" /> 件
+        <input type="number" id="threshold-3" value="10" min="0" />
+        <span>件</span>
+        <button class="resetButton" data-class="3">清空</button>
       </div>
-
-      <!-- 清空垃圾桶按鈕 -->
-      <button id="resetButton">清空垃圾桶</button>
     </div>
 
     <h2>各類垃圾變化趨勢（折線圖）與類型比例（圓餅圖）</h2>
@@ -281,23 +300,25 @@
         });
       }
 
-      document.getElementById("resetButton").addEventListener("click", async () => {
-        if (confirm("確定要清空垃圾桶的累積數量嗎？")) {
-          const res = await fetch("/reset", { method: "POST" });
-          if (res.ok) {
-            alert("垃圾桶已清空！");
-            // 重置前端資料
-            lastCounts = [0, 0, 0, 0];
-            historyLog = [[], [], [], []];
-            timeLabels = [];
-            updateLineChart();
-            pieChart.data.datasets[0].data = [0, 0, 0, 0];
-            pieChart.update();
-            document.getElementById("alert").innerText = "";
-          } else {
-            alert("清空失敗！");
+      document.querySelectorAll(".resetButton").forEach((button) => {
+        button.addEventListener("click", async (e) => {
+          const classIndex = e.target.getAttribute("data-class");
+          const className = classNames[classIndex];
+          if (confirm(`確定要清空「${className}」的累積數量嗎？`)) {
+            const res = await fetch(`/reset/${classIndex}`, { method: "POST" });
+            if (res.ok) {
+              alert(`「${className}」已清空！`);
+              lastCounts[classIndex] = 0;
+              historyLog[classIndex] = [];
+              updateLineChart();
+              pieChart.data.datasets[0].data[classIndex] = 0;
+              pieChart.update();
+              document.getElementById("alert").innerText = "";
+            } else {
+              alert("清空失敗！");
+            }
           }
-        }
+        });
       });
 
       initCharts();

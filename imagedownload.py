@@ -1,11 +1,8 @@
-from icrawler.builtin import BingImageCrawler
+from icrawler.builtin import GoogleImageCrawler, BingImageCrawler
 import os
 
 categories = {
-    'paper_cup': 'paper cup isolated white background',
-    'plastic_bottle': 'plastic bottle isolated white background',
-    'aluminum_can': 'aluminum can isolated white background',
-    'cardboard_box': 'cardboard box isolated white background',
+    'tetra pak': '鋁箔包',
 }
 os.makedirs('dataset', exist_ok=True)
 # categories = {

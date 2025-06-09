@@ -15,7 +15,7 @@ app = Flask(__name__)
 category_counts = defaultdict(int)
 history_log = defaultdict(list)
 
-class_names = ['aluminum_soda_cans', 'cardboard_boxes', 'paper_cups', 'plastic_water_bottles']
+class_names = ['aluminum_soda_cans', 'cardboard_boxes', 'plastic_water_bottles', 'paper_cups']
 class_mapping = {
     0: "鐵鋁罐",
     1: "紙餐盒",

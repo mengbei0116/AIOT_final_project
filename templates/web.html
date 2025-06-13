@@ -118,6 +118,7 @@
       h3#alert {
         color: red;
         margin-top: 20px;
+        white-space: pre-line;
       }
     </style>
   </head>
@@ -125,7 +126,7 @@
     <h1>垃圾分類即時監控</h1>
 
     <div class="card">
-      <h2>分類門檻設定</h2>
+      <h2>清運告警門檻設定</h2>
       <div class="threshold-group">
         <label for="threshold-0">鐵鋁罐：</label>
         <input type="number" id="threshold-0" value="10" min="0" />
@@ -162,9 +163,15 @@
 
     <script>
       const classNames = ["鐵鋁罐", "紙餐盒", "寶特瓶", "紙杯"];
+      const classColors = [
+        "rgba(255, 99, 132, 0.6)",
+        "rgba(54, 162, 235, 0.6)",
+        "rgba(255, 206, 86, 0.6)",
+        "rgba(75, 192, 192, 0.6)",
+      ];
+
       let pieChart = null;
       let lineChart = null;
-
       let historyLog = [[], [], [], []];
       let timeLabels = [];
       let lastCounts = [0, 0, 0, 0];
@@ -244,12 +251,7 @@
               {
                 label: "分類比例",
                 data: [0, 0, 0, 0],
-                backgroundColor: [
-                  "rgba(255, 99, 132, 0.6)",
-                  "rgba(54, 162, 235, 0.6)",
-                  "rgba(255, 206, 86, 0.6)",
-                  "rgba(75, 192, 192, 0.6)",
-                ],
+                backgroundColor: classColors,
               },
             ],
           },
@@ -276,8 +278,10 @@
             datasets: classNames.map((name, i) => ({
               label: name,
               data: [],
+              borderColor: classColors[i],
+              backgroundColor: classColors[i],
               borderWidth: 2,
-              tension: 0.3,
+              tension: 0,
             })),
           },
           options: {

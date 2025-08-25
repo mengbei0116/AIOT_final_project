@@ -34,5 +34,5 @@ AI-based Trash Sorting Machine
 1.網頁上方有不同垃圾的容量門檻值，可設定多少垃圾後觸發告警提醒倒垃圾時機，旁邊的清空按鈕可以重置該垃圾數量  
 2.下方可看到垃圾量的折線圖與圓餅圖方便掌握各垃圾數量  
 3.在網頁最底端會顯示是否有垃圾大於門檻值  
-![image](https://github.com/AIOT_final_project/picture/blob/main/%E7%B6%B2%E9%A0%811.png)
-![image](https://github.com/AIOT_final_project/picture/blob/main/%E7%B6%B2%E9%A0%812.png)
+![image](https://github.com/mengbei0116/AIOT_final_project/blob/main/%E7%B6%B2%E9%A0%811.png)
+![image](https://github.com/mengbei0116/AIOT_final_project/blob/main/%E7%B6%B2%E9%A0%812.png)
